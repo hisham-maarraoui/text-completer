@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import GhostText from '../components/GhostText';
+import getCursorPosition from './getCursorPos';
 
 (function() {
   console.log('Extension starting...');
@@ -10,35 +11,6 @@ import GhostText from '../components/GhostText';
   document.body.appendChild(container);
 
   const root = createRoot(container);
-
-  const getCursorPosition = (element) => {
-    const rect = element.getBoundingClientRect(); // Get position of element in viewport
-    const computedStyle = window.getComputedStyle(element); // Get all the CSS styles of the element
-    
-    const scrollLeft = window.scrollX;
-    const scrollTop = window.scrollY;
-
-    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-      const caretOffset = element.selectionStart || 0;
-      const textBeforeCaret = element.value.substring(0, caretOffset);
-      
-      // Create a temporary element to measure text width
-      const temp = document.createElement('span');
-      temp.style.font = computedStyle.font;
-      temp.style.visibility = 'hidden';
-      temp.style.position = 'absolute';
-      temp.textContent = textBeforeCaret;
-      document.body.appendChild(temp);
-      
-      const textWidth = temp.getBoundingClientRect().width;
-      document.body.removeChild(temp);
-
-      return {
-        x: rect.left + textWidth + parseInt(computedStyle.paddingLeft) + scrollLeft + 10,
-        y: rect.top + parseInt(computedStyle.paddingTop) + scrollTop
-      };
-    }
-  }
 
   const initTextAreas = () => {
     const textAreas = document.querySelectorAll('textarea, [contenteditable="true"], input[type="text"]');
@@ -68,6 +40,16 @@ import GhostText from '../components/GhostText';
                 fontSize: style.fontSize,
                 lineHeight: style.lineHeight,
                 backgroundColor: 'transparent'
+              }}
+              onTabComplete={(suggestion) => {
+                const currentText = event.target.value;
+                const caretPos = event.target.selectionStart;
+
+                const newText = currentText.slice(0, caretPos+1) + suggestion
+
+                event.target.value = newText;
+
+                root.render(null);
               }}
             />
           );
