@@ -19,7 +19,7 @@ const GhostText = ({ text, position, style, onTabComplete }) => {
 
     return (
         <div 
-            className="fixed text-gray-400 pointer-events-none"
+            className="fixed pointer-events-none"
             style={{
                 position: 'fixed',
                 left: `${position.x}px`,

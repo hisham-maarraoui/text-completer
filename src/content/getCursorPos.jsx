@@ -20,9 +20,20 @@ export default getCursorPosition = (element) => {
       const textWidth = temp.getBoundingClientRect().width;
       document.body.removeChild(temp);
 
-      return {
-        x: rect.left + textWidth + parseInt(computedStyle.paddingLeft) + scrollLeft + 10,
-        y: rect.top + parseInt(computedStyle.paddingTop) + scrollTop
-      };
+      const availableWidth = rect.width - (parseInt(computedStyle.paddingLeft) + parseInt(computedStyle.paddingRight));
+    
+      // If the text width exceeds available width, move suggestion to the next line
+      if (textWidth + parseInt(computedStyle.paddingLeft) > availableWidth) {
+        return {
+          x: rect.left + parseInt(computedStyle.paddingLeft) + scrollLeft,
+          y: rect.top + element.scrollHeight + parseInt(computedStyle.paddingTop) + scrollTop
+        };
+      } else {
+        // Suggestion appears on the same line
+        return {
+          x: rect.left + textWidth + parseInt(computedStyle.paddingLeft) + scrollLeft + 10,
+          y: rect.top + parseInt(computedStyle.paddingTop) + scrollTop
+        };
+      }
     }
   }

@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import GhostText from '../components/GhostText';
 import getCursorPosition from './getCursorPos';
+import { llmService } from '../utils/llmService';
 
 (function() {
   console.log('Extension starting...');
@@ -12,48 +13,68 @@ import getCursorPosition from './getCursorPos';
 
   const root = createRoot(container);
 
-  const initTextAreas = () => {
+  const initTextAreas = async () => {
     const textAreas = document.querySelectorAll('textarea, [contenteditable="true"], input[type="text"]');
     console.log('Found text areas:', textAreas.length);
 
+    const initializedTextAreas = new WeakSet();
+
     textAreas.forEach(textArea => {
+      if (initializedTextAreas.has(textArea)) return;
+      initializedTextAreas.add(textArea);
+
       let timeout;
 
-      textArea.addEventListener('input', (event) => {
+      textArea.addEventListener('input', async (event) => {
+        root.render(null);
+
         clearTimeout(timeout);
-        timeout = setTimeout(() => {
+        timeout = setTimeout(async () => {
           const text = event.target.value || event.target.textContent;
-          if (!text) return;
+          if (!text) return root.render(null);
 
           const position = getCursorPosition(event.target);
           const style = window.getComputedStyle(event.target);
 
-          console.log('Text area type:', event.target.tagName);
-          console.log('Showing suggestion at:', position);
+          try {
+            const suggestion = await llmService.getSuggestion(text);
+            
+            if (!suggestion) {
+              console.log('No suggestion received');
+              return root.render(null);
+            }
 
-          root.render(
-            <GhostText 
-              text="Sample suggestion"
-              position={position}
-              style={{
-                font: style.font,
-                fontSize: style.fontSize,
-                lineHeight: style.lineHeight,
-                backgroundColor: 'transparent'
-              }}
-              onTabComplete={(suggestion) => {
-                const currentText = event.target.value;
-                const caretPos = event.target.selectionStart;
+            console.log('Text area type:', event.target.tagName);
+            console.log('Showing suggestion at:', position);
+            console.log('Suggestion:', suggestion);
 
-                const newText = currentText.slice(0, caretPos+1) + suggestion
+            root.render(
+              <GhostText 
+                text={suggestion}
+                position={position}
+                style={{
+                  font: style.font,
+                  fontSize: style.fontSize,
+                  lineHeight: style.lineHeight,
+                  backgroundColor: 'transparent'
+                }}
+                onTabComplete={(suggestion) => {
+                  const currentText = event.target.value;
+                  const caretPos = event.target.selectionStart;
 
-                event.target.value = newText;
+                  const newText = currentText.slice(0, caretPos) + suggestion
 
-                root.render(null);
-              }}
-            />
-          );
-        }, 300);
+                  event.target.value = newText;
+
+                  root.render(null);
+                }}
+              />
+            );
+          } catch (error) {
+            console.log(error);
+            return '';
+          }
+        }, 2000);
       });
     });
   }
@@ -65,9 +86,13 @@ import getCursorPosition from './getCursorPos';
     initTextAreas();
   }
 
-  // Watch for dynamic content
+  let initTimeout;
   const observer = new MutationObserver(() => {
-    initTextAreas();
+    clearTimeout(initTimeout);
+    initTimeout = setTimeout(() => {
+        console.log('Initializing text areas...');
+      initTextAreas();
+    }, 100);
   });
 
   observer.observe(document.body, {
