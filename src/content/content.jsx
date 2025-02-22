@@ -2,7 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import GhostText from '../components/GhostText';
 import getCursorPosition from './getCursorPos';
-import { llmService } from '../utils/llmService';
+// import { llmService } from '../utils/llmService';
+import { deepseekService } from '../utils/deepseek';
 
 (function() {
   console.log('Extension starting...');
@@ -12,6 +13,8 @@ import { llmService } from '../utils/llmService';
   document.body.appendChild(container);
 
   const root = createRoot(container);
+  let lastProcessedText = '';
+
 
   const initTextAreas = async () => {
     const textAreas = document.querySelectorAll('textarea, [contenteditable="true"], input[type="text"]');
@@ -31,22 +34,36 @@ import { llmService } from '../utils/llmService';
         clearTimeout(timeout);
         timeout = setTimeout(async () => {
           const text = event.target.value || event.target.textContent;
-          if (!text) return root.render(null);
-
-          const position = getCursorPosition(event.target);
-          const style = window.getComputedStyle(event.target);
+          if (!text || text.length < 5 || text === lastProcessedText) {
+            return root.render(null);
+          }
 
           try {
-            const suggestion = await llmService.getSuggestion(text);
+            const position = getCursorPosition(event.target);
+            // Validate position before proceeding
+            if (!position || !position.x || !position.y) {
+              console.log('Invalid cursor position:', position);
+              return root.render(null);
+            }
+
+            const style = window.getComputedStyle(event.target);
+            lastProcessedText = text;
             
+            const suggestion = await deepseekService.getSuggestion(text);
             if (!suggestion) {
               console.log('No suggestion received');
               return root.render(null);
             }
 
-            console.log('Text area type:', event.target.tagName);
-            console.log('Showing suggestion at:', position);
-            console.log('Suggestion:', suggestion);
+            console.log('Showing suggestion:', {
+              text: suggestion,
+              position,
+              style: {
+                font: style.font,
+                fontSize: style.fontSize,
+                lineHeight: style.lineHeight
+              }
+            });
 
             root.render(
               <GhostText 
@@ -61,20 +78,18 @@ import { llmService } from '../utils/llmService';
                 onTabComplete={(suggestion) => {
                   const currentText = event.target.value;
                   const caretPos = event.target.selectionStart;
-
-                  const newText = currentText.slice(0, caretPos) + suggestion
-
+                  const newText = currentText.slice(0, caretPos) + suggestion;
                   event.target.value = newText;
-
+                  lastProcessedText = newText;
                   root.render(null);
                 }}
               />
             );
           } catch (error) {
-            console.log(error);
-            return '';
+            console.error('Error:', error);
+            root.render(null);
           }
-        }, 2000);
+        }, 550);
       });
     });
   }

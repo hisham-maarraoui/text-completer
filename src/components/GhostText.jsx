@@ -1,40 +1,40 @@
 import React from 'react';
-import { useEffect} from 'react';
 
 const GhostText = ({ text, position, style, onTabComplete }) => {
+  if (!position || !position.x || !position.y) {
+    return null; // Don't render if we don't have valid position
+  }
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Tab') {
-                e.preventDefault(); // Stop default tab behavior
-                onTabComplete(text);
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown);
+  const ghostStyle = {
+    position: 'absolute',
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    color: '#666',
+    pointerEvents: 'none',
+    zIndex: 9999,
+    ...style
+  };
 
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        }
-    }, [onTabComplete, text]);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      onTabComplete(text);
+    }
+  };
 
-    return (
-        <div 
-            className="fixed pointer-events-none"
-            style={{
-                position: 'fixed',
-                left: `${position.x}px`,
-                top: `${position.y}px`,
-                zIndex: 999999,
-                whiteSpace: 'pre',
-                pointerEvents: 'none',
-                userSelect: 'none',
-                color: 'rgba(169, 169, 169, 0.73)',
-                ...style
-            }}
-        >
-        {text}
-        </div>
-    );
+  // Add event listener for Tab key
+  React.useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [text]);
+
+  return (
+    <div style={ghostStyle}>
+      {text}
+    </div>
+  );
 };
 
 export default GhostText;

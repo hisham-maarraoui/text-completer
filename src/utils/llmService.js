@@ -1,12 +1,6 @@
 const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY;
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-console.log('API Key status:', {
-    exists: !!API_KEY,
-    length: API_KEY?.length,
-    firstChars: API_KEY ? `${API_KEY.substring(0, 4)}...` : 'none'
-});
-
 export const llmService = {
     getSuggestion: async (currentText) => {
         // Input validation
