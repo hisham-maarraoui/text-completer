@@ -1,3 +1,6 @@
+Can maybe delete the stuff below and fill the readme with information about the extension 
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
